@@ -1,0 +1,51 @@
+= Robotico.Saga — Design
+:toc: left
+:toclevels: 2
+:sectnums:
+:icons: font
+
+This document explains the saga pattern and Robotico.Saga: orchestration vs choreography, Execute/Compensate semantics, and integration with other Robotico packages.
+
+== Saga pattern
+
+A *saga* coordinates multiple steps across services or resources. If a step fails, prior steps are *compensated* (undone) in reverse order so that the system remains consistent without distributed locks.
+
+Two styles:
+
+* *Orchestration* — A central coordinator runs steps in sequence and calls Compensate for each completed step when a later step fails.
+* *Choreography* — Each step emits events; subscribers perform work and emit compensating events on failure. Robotico.Saga defines the step contract (Execute + Compensate); the runner can be central or event-driven.
+
+== API contract
+
+* *ISagaStep* — Single abstraction:
+** `ExecuteAsync(CancellationToken)` → Result. Performs the step. On failure, the saga runner should call CompensateAsync for any previously completed steps in reverse order.
+** `CompensateAsync(CancellationToken)` → Result. Undoes the effect of this step. Must be idempotent where possible.
+
+Implementations should ensure Execute and Compensate are idempotent when the same step is retried (e.g. after a timeout or crash).
+
+== Architecture
+
+*Orchestration:* a central coordinator holds a list of steps, runs them in sequence, and on failure calls Compensate in reverse order. *Choreography:* each step emits events; subscribers perform work and may emit compensating events. Robotico.Saga defines the step contract (ISagaStep); the runner can be in-process or event-driven.
+
+[source,mermaid]
+----
+flowchart LR
+  subgraph orchestration
+    C[Coordinator] --> S1[Step 1]
+    S1 --> S2[Step 2]
+    S2 --> S3[Step 3]
+    S3 -.failure.-> Comp[Compensate 2, 1]
+  end
+  C --> Repo[Robotico.Repository]
+  C --> Res[Robotico.Resilience]
+  C --> Ev[Robotico.Events]
+----
+
+Persist saga state (Robotico.Repository) for resumability; use Robotico.Resilience for retries and Robotico.Events for choreography-style coordination.
+
+== Related packages
+
+* *Robotico.Repository* — Persist saga state (which steps completed, compensation order) so the saga can resume after a failure.
+* *Robotico.Resilience* — Retry ExecuteAsync or CompensateAsync with backoff; circuit breaker if a service is down.
+* *Robotico.Events* — Emit domain events after a step succeeds or when compensating; choreography-style sagas.
+* *Robotico.Mediator* — Implement steps as IRequest handlers; mediator sends to the appropriate handler for each step.

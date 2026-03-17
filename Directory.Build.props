@@ -20,6 +20,7 @@
     <Copyright>Copyright © Robotico</Copyright>
     <RepositoryType>git</RepositoryType>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>All</AnalysisMode>
     <PackageId>Robotico.Saga</PackageId>
     <Title>Robotico.Saga</Title>
     <Description>Saga pattern: compensating transactions, orchestration/choreography. Result-based. Depends on Robotico.Result.</Description>
