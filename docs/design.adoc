@@ -27,7 +27,7 @@ Implementations should ensure Execute and Compensate are idempotent when the sam
 
 *Orchestration:* a central coordinator holds a list of steps, runs them in sequence, and on failure calls Compensate in reverse order. *Choreography:* each step emits events; subscribers perform work and may emit compensating events. Robotico.Saga defines the step contract (ISagaStep); the runner can be in-process or event-driven.
 
-[source,mermaid]
+[mermaid]
 ----
 flowchart LR
   subgraph orchestration
